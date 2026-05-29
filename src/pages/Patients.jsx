@@ -1,13 +1,57 @@
+import { useState } from 'react';
 import { TOKENS, mono } from '../tokens.js';
 import { useIsMobile, useWrap } from '../hooks.js';
 import { Nav, Footer, SiteLink } from '../components/Nav.jsx';
 import { SectionHeader, ArcsMotif, Faq, CtaArcs } from '../components/Ui.jsx';
 import { Arrow } from '../components/Logo.jsx';
 
+// Web3Forms access key (same as the contact form) — routes signups to david@verisresearch.com.
+const ACCESS_KEY = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+
 export default function PatientsPage() {
   const { navy, teal, paper, ink70, ink55, rule, fontSans } = TOKENS;
   const isMobile = useIsMobile();
   const w = useWrap();
+
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifyStatus, setNotifyStatus] = useState("idle"); // idle | submitting | success | error
+  const [notifyError, setNotifyError] = useState("");
+
+  const onNotify = async (e) => {
+    e.preventDefault();
+    if (!ACCESS_KEY) {
+      setNotifyStatus("error");
+      setNotifyError("Sign-up isn't configured yet. Please email us at david@verisresearch.com.");
+      return;
+    }
+    setNotifyStatus("submitting");
+    setNotifyError("");
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: ACCESS_KEY,
+          subject: "Veris website — Notify-me signup (Patients)",
+          from_name: "Veris Research website",
+          replyto: notifyEmail,
+          "Inquiry type": "Patient — notify me when a study opens",
+          Email: notifyEmail,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifyStatus("success");
+        setNotifyEmail("");
+      } else {
+        setNotifyStatus("error");
+        setNotifyError(data.message || "Something went wrong. Please email us at david@verisresearch.com.");
+      }
+    } catch (err) {
+      setNotifyStatus("error");
+      setNotifyError("Couldn't reach the server. Please email us at david@verisresearch.com.");
+    }
+  };
 
   return (
     <div style={{ width: "100%", background: "#fff", color: navy, fontFamily: fontSans, fontSize: 15.5, lineHeight: 1.55 }}>
@@ -171,16 +215,37 @@ export default function PatientsPage() {
             Want to be the first to hear when a study opens at a clinic near you?
             Drop us your details and we'll only reach out about studies you might qualify for.
           </p>
-          <div style={{ display: "flex", gap: 12, maxWidth: 480, margin: "0 auto", flexDirection: isMobile ? "column" : "row" }}>
-            <input
-              type="email"
-              placeholder="your@email.com"
-              style={{ flex: 1, background: "#fff", border: `1px solid ${rule}`, padding: "14px 18px", borderRadius: 4, fontSize: 15, fontFamily: fontSans, color: navy, outline: "none" }}
-            />
-            <button style={{ background: navy, color: "#fff", border: "none", padding: "14px 22px", borderRadius: 4, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: fontSans }}>
-              Notify me
-            </button>
-          </div>
+          {notifyStatus === "success" ? (
+            <div style={{ ...mono, color: teal, maxWidth: 480, margin: "0 auto", display: "inline-flex", alignItems: "center", gap: 10, textTransform: "none", fontSize: 14 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M3 8.5l3.5 3.5L13 5" stroke={teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              You're on the list — we'll reach out when a study opens near you.
+            </div>
+          ) : (
+            <form onSubmit={onNotify} style={{ display: "flex", gap: 12, maxWidth: 480, margin: "0 auto", flexDirection: isMobile ? "column" : "row" }}>
+              <input
+                type="email"
+                required
+                value={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.value)}
+                placeholder="your@email.com"
+                style={{ flex: 1, background: "#fff", border: `1px solid ${rule}`, padding: "14px 18px", borderRadius: 4, fontSize: 15, fontFamily: fontSans, color: navy, outline: "none" }}
+              />
+              <button
+                type="submit"
+                disabled={notifyStatus === "submitting"}
+                style={{ background: navy, color: "#fff", border: "none", padding: "14px 22px", borderRadius: 4, fontSize: 14.5, fontWeight: 600, cursor: notifyStatus === "submitting" ? "default" : "pointer", fontFamily: fontSans, opacity: notifyStatus === "submitting" ? 0.8 : 1 }}
+              >
+                {notifyStatus === "submitting" ? "Sending…" : "Notify me"}
+              </button>
+            </form>
+          )}
+          {notifyStatus === "error" && (
+            <p role="alert" style={{ marginTop: 14, fontSize: 13.5, color: "#B3261E", fontWeight: 500 }}>
+              {notifyError}
+            </p>
+          )}
         </div>
       </section>
 
