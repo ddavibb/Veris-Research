@@ -157,7 +157,6 @@ export function Footer() {
               Independent clinical research site, passionately partnered with the Federally Qualified Health Centers
               that already serve the populations most underrepresented in research.
             </p>
-            <div style={{ ...mono, color: TOKENS.teal, marginTop: 24 }}>// HELLO@VERISRESEARCH.COM</div>
           </div>
           <div style={{ display: isMobile ? "grid" : "contents", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             {[
