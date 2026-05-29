@@ -220,7 +220,7 @@ export default function PatientsPage() {
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
                 <path d="M3 8.5l3.5 3.5L13 5" stroke={teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              You're on the list — we'll reach out when a study opens near you.
+              Thanks for your interest— we'll reach out to you soon!
             </div>
           ) : (
             <form onSubmit={onNotify} style={{ display: "flex", gap: 12, maxWidth: 480, margin: "0 auto", flexDirection: isMobile ? "column" : "row" }}>
