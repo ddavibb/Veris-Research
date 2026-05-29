@@ -13,6 +13,20 @@ const PATHS = [
   { id: "other",   label: "Something else",                   help: "Drop us a line — we read everything." },
 ];
 
+const AREAS = [
+  "Cardiometabolic",
+  "Infectious disease",
+  "Women's & reproductive health",
+  "Primary care / general medicine",
+  "Oncology",
+  "Other",
+];
+const PHASES = ["Phase II", "Phase III", "Phase IV / RWE", "Phase I", "Feasibility only"];
+
+// Web3Forms access key — safe to expose client-side; routes submissions to david@verisresearch.com.
+// Set in .env as VITE_WEB3FORMS_ACCESS_KEY (see .env.example).
+const ACCESS_KEY = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+
 function readAs() {
   const h = window.location.hash || "";
   const q = h.split("?")[1] || "";
@@ -26,8 +40,10 @@ export default function ContactPage() {
   const w = useWrap();
 
   const [path, setPath] = useState(readAs);
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", org: "", message: "" });
+  // status: "idle" | "submitting" | "success" | "error"
+  const [status, setStatus] = useState("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", org: "", message: "", area: AREAS[0], phase: PHASES[0] });
 
   useEffect(() => {
     const onHash = () => setPath(readAs());
@@ -36,10 +52,52 @@ export default function ContactPage() {
   }, []);
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const onSubmit = (e) => {
+
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 5000);
+    if (!ACCESS_KEY) {
+      setStatus("error");
+      setErrorMsg("Form isn't configured yet. Please email us directly at david@verisresearch.com.");
+      return;
+    }
+    setStatus("submitting");
+    setErrorMsg("");
+
+    const active = PATHS.find((p) => p.id === path);
+    const payload = {
+      access_key: ACCESS_KEY,
+      subject: `Veris website — ${active.label}`,
+      from_name: form.name || "Veris Research website",
+      replyto: form.email,
+      "Inquiry type": active.label,
+      Name: form.name,
+      Email: form.email,
+      Message: form.message,
+    };
+    if (path !== "patient") payload.Organization = form.org;
+    if (path === "sponsor") {
+      payload["Therapeutic area"] = form.area;
+      payload.Phase = form.phase;
+    }
+
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus("success");
+        setForm({ name: "", email: "", org: "", message: "", area: AREAS[0], phase: PHASES[0] });
+      } else {
+        setStatus("error");
+        setErrorMsg(data.message || "Something went wrong. Please email us at david@verisresearch.com.");
+      }
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg("Couldn't reach the server. Please email us at david@verisresearch.com.");
+    }
   };
 
   const active = PATHS.find((p) => p.id === path);
@@ -154,22 +212,13 @@ export default function ContactPage() {
             {path === "sponsor" && (
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }}>
                 <Field label="Therapeutic area">
-                  <select style={{ ...inputBase, appearance: "none" }}>
-                    <option>Cardiometabolic</option>
-                    <option>Infectious disease</option>
-                    <option>Women's & reproductive health</option>
-                    <option>Primary care / general medicine</option>
-                    <option>Oncology</option>
-                    <option>Other</option>
+                  <select value={form.area} onChange={update("area")} style={{ ...inputBase, appearance: "none" }}>
+                    {AREAS.map((a) => <option key={a}>{a}</option>)}
                   </select>
                 </Field>
                 <Field label="Phase">
-                  <select style={{ ...inputBase, appearance: "none" }}>
-                    <option>Phase II</option>
-                    <option>Phase III</option>
-                    <option>Phase IV / RWE</option>
-                    <option>Phase I</option>
-                    <option>Feasibility only</option>
+                  <select value={form.phase} onChange={update("phase")} style={{ ...inputBase, appearance: "none" }}>
+                    {PHASES.map((p) => <option key={p}>{p}</option>)}
                   </select>
                 </Field>
               </div>
@@ -198,29 +247,39 @@ export default function ContactPage() {
 
             <button
               type="submit"
-              disabled={submitted}
+              disabled={status === "submitting" || status === "success"}
               style={{
                 marginTop: 24,
-                background: submitted ? teal : navy,
-                color: submitted ? navy : "#fff",
+                background: status === "success" ? teal : navy,
+                color: status === "success" ? navy : "#fff",
                 border: "none", padding: "16px 24px", borderRadius: 4,
-                fontSize: 15, fontWeight: 600, cursor: submitted ? "default" : "pointer",
+                fontSize: 15, fontWeight: 600,
+                cursor: status === "submitting" || status === "success" ? "default" : "pointer",
+                opacity: status === "submitting" ? 0.8 : 1,
                 fontFamily: fontSans,
                 display: "inline-flex", alignItems: "center", gap: 10,
-                transition: "background 0.2s",
+                transition: "background 0.2s, opacity 0.2s",
               }}
             >
-              {submitted ? (
+              {status === "success" ? (
                 <>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M3 8.5l3.5 3.5L13 5" stroke={navy} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Got it — we'll be in touch within 48 hrs
                 </>
+              ) : status === "submitting" ? (
+                <>Sending…</>
               ) : (
                 <>Send message <Arrow color="#fff" /></>
               )}
             </button>
+
+            {status === "error" && (
+              <p role="alert" style={{ marginTop: 16, fontSize: 13.5, color: "#B3261E", fontWeight: 500 }}>
+                {errorMsg}
+              </p>
+            )}
 
             <p style={{ marginTop: 18, fontSize: 12, color: ink55 }}>
               We respond to every inquiry within two business days. For patient

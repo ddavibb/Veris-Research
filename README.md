@@ -49,10 +49,23 @@ CTAs deep-link with query params the pages read on load and on `hashchange`:
 - `#/contact?as=patient|fqhc|sponsor|press|other` pre-selects the contact form path
 - `#/patients?scroll=faq` scrolls to the FAQ section
 
-## Notes carried over from the design handoff
+## Contact form
 
-- Copy, stats, and timelines are plausible placeholders — swap in real content
-  before publishing. Census figures cite the U.S. Census Bureau 2023 ACS 5-year
-  estimates (LA County) and UCLA CTSI; FQHC figures cite HRSA UDS.
-- The contact form is demo-only (shows a confirmation; no backend wired).
+The contact form submits via [Web3Forms](https://web3forms.com) to
+`david@verisresearch.com` — no server to run. The access key is read from
+`VITE_WEB3FORMS_ACCESS_KEY` (see `.env.example`). Copy `.env.example` to `.env`
+and add the key before building:
+
+```bash
+cp .env.example .env   # then paste the key into .env
+```
+
+The key is a *public* client-side key (it only routes mail to the inbox, it is
+not a secret) and is inlined into the build, so set the same env var wherever
+you build/deploy. `.env` itself is gitignored.
+
+## Notes
+
+- Stats are cited inline: census figures use the U.S. Census Bureau 2023 ACS
+  5-year estimates (LA County) and UCLA CTSI; FQHC figures use HRSA UDS.
 - No Team page (removed during design iteration — no named PI yet).
