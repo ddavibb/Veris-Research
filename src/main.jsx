@@ -21,6 +21,18 @@ function App() {
       contact:   "Contact — Veris Research",
     };
     document.title = titles[route] || titles[""];
+
+    // GA4 SPA pageview: hash-route changes aren't real navigations, so send an
+    // explicit page_view per route. The route is folded into page_location so
+    // GA4 reports each page distinctly (a raw "#/patients" hash collapses to "/").
+    if (typeof window.gtag === "function") {
+      const path = route ? `/${route}` : "/";
+      window.gtag("event", "page_view", {
+        page_title: document.title,
+        page_location: window.location.origin + path,
+        page_path: path,
+      });
+    }
   }, [route]);
 
   switch (route) {
