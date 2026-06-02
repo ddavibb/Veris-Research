@@ -8,7 +8,9 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
-    gtag('config', 'G-CYVZWE234N');
+    // send_page_view disabled: this is a hash-router SPA, so pageviews are sent
+    // manually on each route change (see src/main.jsx) for accurate per-page data.
+    gtag('config', 'G-CYVZWE234N', { send_page_view: false });
   </script>
 
   <meta charset="UTF-8" />
@@ -40,7 +42,7 @@
     }
     body { overflow-x: hidden; }
   </style>
-  <script type="module" crossorigin src="./assets/index-jHAMb6Mi.js"></script>
+  <script type="module" crossorigin src="./assets/index-DGxy90zw.js"></script>
 </head>
 <body>
   <div id="root"></div>
